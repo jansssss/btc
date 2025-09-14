@@ -31,7 +31,7 @@ BITHUMB_TICKER_URL  = "https://api.bithumb.com/public/ticker/USDT_KRW"
 # -----------------------------
 # Page setup & theme
 # -----------------------------
-st.set_page_config(page_title="BTC차액거래", page_icon="📈", layout="centered")
+st.set_page_config(page_title="BTC solution", page_icon="📈", layout="centered")
 st.markdown(
     """
     <style>
@@ -242,4 +242,5 @@ st.markdown(
 with contextlib.suppress(Exception):
     time.sleep(int(refresh_min) * 60)
     st.rerun()
+
 
