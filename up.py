@@ -576,12 +576,47 @@ with st.sidebar:
         help="How often to fetch new market data"
     )
     
-    view_mode = st.radio(
+    # Auto-detect mobile and set appropriate default
+    default_mode = st.radio(
         "Display Mode",
-        options=["Compact", "Detailed", "Professional"],
-        index=2,
-        help="Choose your preferred layout style"
+        options=["Auto", "Compact", "Detailed", "Professional"],
+        index=0,
+        help="Auto adapts to your screen size, or choose manually"
     )
+    
+    # Mobile detection via JavaScript (fallback to Compact for mobile)
+    if default_mode == "Auto":
+        view_mode = "Compact"  # Default fallback
+        
+        # Add mobile detection script
+        st.markdown("""
+        <script>
+        function detectMobile() {
+            const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                // Mobile detected - use Compact mode
+                return "Compact";
+            } else if (window.innerWidth <= 1024) {
+                // Tablet - use Detailed mode  
+                return "Detailed";
+            } else {
+                // Desktop - use Professional mode
+                return "Professional";
+            }
+        }
+        
+        // Store the result for Python to access
+        const detectedMode = detectMobile();
+        window.parent.postMessage({type: 'streamlit:app-mode', mode: detectedMode}, '*');
+        </script>
+        """, unsafe_allow_html=True)
+        
+        # Override with Professional for desktop by default
+        if 'detected_mode' not in st.session_state:
+            st.session_state.detected_mode = "Professional"  # Default to Professional
+        view_mode = st.session_state.detected_mode
+    else:
+        view_mode = default_mode
     
     st.markdown("### 📊 Data Sources")
     allow_fallback = st.toggle(
@@ -832,10 +867,52 @@ elif view_mode == "Detailed":
     row2[1].metric("💰 Est. Profit", f"{est_profit_krw:+,.0f} KRW", delta=f"{net_kimp_effective:+.2f}%")
     row2[2].metric("🎯 Opportunity", f"{opportunity_score:.0f}/100", delta=urgency_level)
 
-else:  # Compact mode
-    st.metric("⚡ Kimchi Premium", f"{kimp:+.2f}%")
-    st.metric("💰 Estimated Profit", f"{est_profit_krw:+,.0f} KRW")
-    st.metric("🎯 Opportunity Score", f"{opportunity_score:.0f}/100")
+else:  # Compact mode - Mobile Optimized
+    st.markdown("### 📱 Quick Overview")
+    
+    # Mobile-optimized single column layout
+    profit_color = "var(--success)" if est_profit_krw > 0 else "var(--danger)"
+    score_color = "var(--success)" if opportunity_score > 30 else "var(--warning)" if opportunity_score > 15 else "var(--danger)"
+    
+    st.markdown(f"""
+    <div class="metric-card" style="text-align: center; margin: 1rem 0;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.875rem;">Kimchi Premium</div>
+                <div style="color: {'var(--success)' if kimp > 0 else 'var(--danger)'}; font-size: 2rem; font-weight: 700; margin: 0.25rem 0;">
+                    {kimp:+.2f}%
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.875rem;">{kimp_direction}</div>
+            </div>
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.875rem;">Est. Profit</div>
+                <div style="color: {profit_color}; font-size: 2rem; font-weight: 700; margin: 0.25rem 0;">
+                    ₩{est_profit_krw:+,.0f}
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.875rem;">Korean Won</div>
+            </div>
+        </div>
+        
+        <div style="padding: 1rem; background: rgba(0,0,0,0.1); border-radius: 8px; margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text-secondary);">Opportunity Score</span>
+                <span style="color: {score_color}; font-weight: 700; font-size: 1.2rem;">{opportunity_score:.0f}/100</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                <span style="color: var(--text-secondary);">Status</span>
+                <span style="color: var(--text-primary); font-weight: 600;">{urgency_level}</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mobile-friendly price summary
+    st.markdown("### 💱 Market Prices")
+    price_cols = st.columns(2)
+    with price_cols[0]:
+        st.metric("🇰🇷 Upbit", f"₩{krw_btc:,.0f}", help="Korean BTC price")
+    with price_cols[1]:
+        st.metric(f"🌐 {price_source}", f"{btcusdt:.2f} USDT", help="International BTC price")
 
 # -----------------------------
 # Advanced Data Visualization
@@ -875,8 +952,110 @@ st.markdown("---")
 st.markdown("## 📈 Real-time Analytics")
 
 if len(hist_df) > 1:
-    # Create advanced Plotly charts
-    chart_tabs = st.tabs(["💰 Profit Tracking", "⚡ Premium History", "📊 Multi-Metric View"])
+    # Mobile-responsive chart tabs
+    if view_mode == "Compact":
+        # Simplified charts for mobile
+        chart_tabs = st.tabs(["📈 Trends", "📊 Analysis"])
+        
+        with chart_tabs[0]:
+            # Single combined chart for mobile
+            fig_mobile = make_subplots(
+                rows=2, cols=1,
+                subplot_titles=('Kimchi Premium', 'Estimated Profit'),
+                vertical_spacing=0.15,
+                row_heights=[0.6, 0.4]
+            )
+            
+            # Premium line
+            fig_mobile.add_trace(
+                go.Scatter(
+                    x=hist_df['timestamp'],
+                    y=hist_df['kimp'],
+                    mode='lines+markers',
+                    name='Premium',
+                    line=dict(color='#6366f1', width=2),
+                    marker=dict(size=4),
+                    hovertemplate='<b>%{x}</b><br>Premium: %{y:.2f}%<extra></extra>'
+                ),
+                row=1, col=1
+            )
+            
+            # Profit line
+            fig_mobile.add_trace(
+                go.Scatter(
+                    x=hist_df['timestamp'],
+                    y=hist_df['profit'],
+                    mode='lines+markers',
+                    name='Profit',
+                    line=dict(color='#10b981', width=2),
+                    fill='tonexty',
+                    fillcolor='rgba(16, 185, 129, 0.1)',
+                    marker=dict(size=4),
+                    hovertemplate='<b>%{x}</b><br>Profit: ₩%{y:,.0f}<extra></extra>'
+                ),
+                row=2, col=1
+            )
+            
+            # Add break-even line
+            fig_mobile.add_hline(y=route_cost, line_dash="dash", line_color="#f59e0b", row=1, col=1)
+            fig_mobile.add_hline(y=-route_cost, line_dash="dash", line_color="#f59e0b", row=1, col=1)
+            fig_mobile.add_hline(y=0, line_dash="dash", line_color="rgba(148, 163, 184, 0.5)", row=2, col=1)
+            
+            fig_mobile.update_layout(
+                template=plotly_template,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='var(--text-primary)' if is_dark_mode else '#0f172a', size=11),
+                height=400,
+                hovermode='x unified',
+                showlegend=False,
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            
+            fig_mobile.update_xaxes(title_text="", row=1, col=1, showticklabels=False)
+            fig_mobile.update_xaxes(title_text="Time", row=2, col=1)
+            fig_mobile.update_yaxes(title_text="Premium (%)", row=1, col=1)
+            fig_mobile.update_yaxes(title_text="Profit (KRW)", row=2, col=1)
+            
+            st.plotly_chart(fig_mobile, use_container_width=True, config={
+                'displayModeBar': False,  # Hide toolbar on mobile
+                'staticPlot': False,
+                'scrollZoom': True,
+                'doubleClick': 'reset'
+            })
+        
+        with chart_tabs[1]:
+            # Simple metrics summary for mobile
+            st.markdown("#### 📊 Quick Stats")
+            
+            latest = hist_df.iloc[-1]
+            
+            metrics_mobile = st.columns(2)
+            with metrics_mobile[0]:
+                st.metric(
+                    "Current Premium", 
+                    f"{latest['kimp']:.2f}%",
+                    delta=f"{latest['kimp'] - hist_df.iloc[-2]['kimp'] if len(hist_df) > 1 else 0:.2f}%" 
+                )
+                st.metric(
+                    "Opportunity Score", 
+                    f"{latest['opportunity_score']:.0f}/100"
+                )
+            
+            with metrics_mobile[1]:
+                st.metric(
+                    "Est. Profit", 
+                    f"₩{latest['profit']:+,.0f}",
+                    delta=f"₩{latest['profit'] - hist_df.iloc[-2]['profit'] if len(hist_df) > 1 else 0:+,.0f}"
+                )
+                st.metric(
+                    "Break-even", 
+                    f"{route_cost:.2f}%"
+                )
+    
+    else:
+        # Desktop/tablet full charts
+        chart_tabs = st.tabs(["💰 Profit Tracking", "⚡ Premium History", "📊 Multi-Metric View"])
     
     with chart_tabs[0]:
         # Profit tracking chart
@@ -1109,10 +1288,46 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-# Professional Action Center
+# Responsive Action Center
 st.markdown("## 🎯 Action Center")
 
-action_cols = st.columns([2, 1, 1])
+if view_mode == "Compact":
+    # Mobile-optimized single column action center
+    st.markdown(f"""
+    <div class="metric-card">
+        <h4 style="margin: 0 0 1rem 0; color: var(--text-primary); text-align: center;">Current Strategy</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                <div style="color: var(--text-secondary); font-size: 0.875rem;">Direction</div>
+                <div style="color: var(--primary-accent); font-weight: 600; font-size: 0.95rem;">{arbitrage_direction}</div>
+            </div>
+            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                <div style="color: var(--text-secondary); font-size: 0.875rem;">Status</div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 0.95rem;">{urgency_level}</div>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; text-align: center;">
+            <div>
+                <div style="color: var(--text-secondary); font-size: 0.75rem;">Risk</div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 0.9rem;">{risk_level}</div>
+            </div>
+            <div>
+                <div style="color: var(--text-secondary); font-size: 0.75rem;">Efficiency</div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 0.9rem;">{efficiency_ratio:.1f}x</div>
+            </div>
+            <div>
+                <div style="color: var(--text-secondary); font-size: 0.75rem;">Source</div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 0.9rem;">{price_source}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+else:
+    # Desktop full action center
+    action_cols = st.columns([2, 1, 1])
 
 with action_cols[0]:
     st.markdown(f"""
@@ -1160,8 +1375,9 @@ with action_cols[2]:
     </div>
     """, unsafe_allow_html=True)
 
-# Enhanced Trading Checklist
-with st.expander("📋 Professional Trading Checklist", expanded=(alert_level == "critical")):
+# Mobile-responsive Trading Checklist
+checklist_title = "📋 Trading Checklist" if view_mode == "Compact" else "📋 Professional Trading Checklist"
+with st.expander(checklist_title, expanded=(alert_level == "critical" and view_mode != "Compact")):
     st.markdown(f"""
     ### 🎯 Pre-Trade Analysis
     
@@ -1193,25 +1409,50 @@ with st.expander("📋 Professional Trading Checklist", expanded=(alert_level ==
     - Historical Success Rate: **Monitor via Analytics tab**
     """)
 
-# Quick Stats Footer
+# Mobile-responsive Footer
 st.markdown("---")
-footer_cols = st.columns(5)
-footer_metrics = [
-    ("🎯", "Opportunities Today", "3"),  # Placeholder
-    ("💰", "Avg Profit", f"₩{abs(est_profit_krw):,.0f}"),
-    ("⚡", "Peak Premium", f"{abs_k:.1f}%"),
-    ("🔄", "Data Source", price_source),
-    ("⏰", "Last Update", timestamp)
-]
 
-for col, (icon, label, value) in zip(footer_cols, footer_metrics):
-    col.markdown(f"""
-    <div style="text-align: center; padding: 0.5rem;">
-        <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">{icon}</div>
-        <div style="color: var(--text-muted); font-size: 0.75rem;">{label}</div>
-        <div style="color: var(--text-primary); font-weight: 600; font-size: 0.9rem;">{value}</div>
+if view_mode == "Compact":
+    # Mobile compact footer
+    st.markdown(f"""
+    <div style="text-align: center; padding: 1rem; background: var(--glass-bg); border-radius: 12px; margin: 1rem 0;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <div style="font-size: 1.2rem;">⚡</div>
+                <div style="color: var(--text-muted); font-size: 0.75rem;">Peak Premium</div>
+                <div style="color: var(--text-primary); font-weight: 600;">{abs_k:.1f}%</div>
+            </div>
+            <div>
+                <div style="font-size: 1.2rem;">🔄</div>
+                <div style="color: var(--text-muted); font-size: 0.75rem;">Source</div>
+                <div style="color: var(--text-primary); font-weight: 600;">{price_source}</div>
+            </div>
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.75rem;">
+            Last Update: {timestamp}
+        </div>
     </div>
     """, unsafe_allow_html=True)
+    
+else:
+    # Desktop full footer
+    footer_cols = st.columns(5)
+    footer_metrics = [
+        ("🎯", "Opportunities Today", "3"),  # Placeholder
+        ("💰", "Avg Profit", f"₩{abs(est_profit_krw):,.0f}"),
+        ("⚡", "Peak Premium", f"{abs_k:.1f}%"),
+        ("🔄", "Data Source", price_source),
+        ("⏰", "Last Update", timestamp)
+    ]
+
+    for col, (icon, label, value) in zip(footer_cols, footer_metrics):
+        col.markdown(f"""
+        <div style="text-align: center; padding: 0.5rem;">
+            <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">{icon}</div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">{label}</div>
+            <div style="color: var(--text-primary); font-weight: 600; font-size: 0.9rem;">{value}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # -----------------------------
 # Smart Auto-Refresh System
