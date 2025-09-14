@@ -116,7 +116,7 @@ def btc_route_cost_pct(
 # -----------------------------
 # Sidebar
 # -----------------------------
-st.title("BTC차액거래")
+st.title("BTC solution")
 with st.sidebar:
     st.header("설정")
     mobile_compact = st.toggle("모바일 압축 모드", value=True, help="끄면 PC 화면에 맞춰 넓게 보여줍니다.")
@@ -242,5 +242,6 @@ st.markdown(
 with contextlib.suppress(Exception):
     time.sleep(int(refresh_min) * 60)
     st.rerun()
+
 
 
