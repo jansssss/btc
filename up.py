@@ -120,7 +120,7 @@ st.title("BTC차액거래")
 with st.sidebar:
     st.header("설정")
     mobile_compact = st.toggle("모바일 압축 모드", value=True, help="끄면 PC 화면에 맞춰 넓게 보여줍니다.")
-    capital     = st.number_input("자본금(원)", value=10_000_000, step=1_000_000, format="%d")
+    capital     = st.number_input("자본금(원)", value=30_000_000, step=3_000_000, format="%d")
     alert_min   = st.number_input("알림 하한(|김프|, %)", value=1.5, step=0.1)
     alert_max   = st.number_input("알림 상한(|김프|, %)", value=2.0, step=0.1)
     refresh_min = st.slider("새로고침(분)", 5, 60, 10, help="5~60분 사이에서 선택")
@@ -242,3 +242,4 @@ st.markdown(
 with contextlib.suppress(Exception):
     time.sleep(int(refresh_min) * 60)
     st.rerun()
+
