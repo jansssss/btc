@@ -38,33 +38,72 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Professional Design System
-st.markdown("""
+# Get theme preference from sidebar first (need to initialize early)
+if 'theme_mode' not in st.session_state:
+    st.session_state.theme_mode = 'dark'
+
+# Theme initialization
+
+# Dynamic Theme System
+is_dark_mode = st.session_state.theme_mode == 'dark'
+
+if is_dark_mode:
+    theme_vars = """
+    :root {
+        --primary-bg: #0a0e1a;
+        --secondary-bg: #111827;
+        --card-bg: rgba(17, 24, 39, 0.8);
+        --primary-accent: #6366f1;
+        --secondary-accent: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+        --border-subtle: rgba(148, 163, 184, 0.1);
+        --border-emphasis: rgba(148, 163, 184, 0.2);
+        --glass-bg: rgba(255, 255, 255, 0.05);
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }"""
+    plotly_template = "plotly_dark"
+else:
+    theme_vars = """
+    :root {
+        --primary-bg: #ffffff;
+        --secondary-bg: #f8fafc;
+        --card-bg: rgba(255, 255, 255, 0.9);
+        --primary-accent: #4f46e5;
+        --secondary-accent: #7c3aed;
+        --success: #059669;
+        --warning: #d97706;
+        --danger: #dc2626;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --border-subtle: rgba(148, 163, 184, 0.2);
+        --border-emphasis: rgba(148, 163, 184, 0.3);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --gradient-success: linear-gradient(135deg, #059669 0%, #047857 100%);
+        --gradient-danger: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    }"""
+    plotly_template = "plotly_white"
+
+# Professional Design System with Theme Support
+st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-:root {
-    --primary-bg: #0a0e1a;
-    --secondary-bg: #111827;
-    --card-bg: rgba(17, 24, 39, 0.8);
-    --primary-accent: #6366f1;
-    --secondary-accent: #8b5cf6;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #64748b;
-    --border-subtle: rgba(148, 163, 184, 0.1);
-    --border-emphasis: rgba(148, 163, 184, 0.2);
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
+{theme_vars}
 
 /* Global Styles */
 .block-container {
@@ -278,18 +317,95 @@ h2, h3, h4 {
 .status-warning { background: var(--warning); }
 .status-offline { background: var(--danger); }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Mobile-First Responsive Design */
+@media (max-width: 480px) {
     .block-container {
-        padding: 1rem;
+        padding: 0.5rem 0.75rem 2rem !important;
+        max-width: 100% !important;
     }
     
     h1 {
-        font-size: 2rem;
+        font-size: 1.5rem !important;
+        text-align: center;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    h2 {
+        font-size: 1.25rem !important;
+        margin: 1rem 0 0.5rem 0 !important;
+    }
+    
+    h3 {
+        font-size: 1rem !important;
+        margin: 0.75rem 0 0.5rem 0 !important;
+    }
+    
+    /* Mobile-optimized cards */
+    .metric-card {
+        margin: 0.25rem 0 !important;
+        padding: 1rem !important;
+        border-radius: 12px !important;
+    }
+    
+    .stMetric > div {
+        padding: 0.75rem !important;
+        margin: 0.25rem 0 !important;
+    }
+    
+    /* Stack columns vertically on mobile */
+    .stColumns {
+        flex-direction: column !important;
+    }
+    
+    .stColumn {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Mobile sidebar */
+    .css-1d391kg {
+        max-width: 280px !important;
+    }
+    
+    /* Mobile navigation */
+    .stTabs {
+        margin: 0.5rem 0 !important;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.25rem !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.875rem !important;
+    }
+}
+
+@media (max-width: 768px) and (min-width: 481px) {
+    .block-container {
+        padding: 0.75rem 1rem 2.5rem !important;
+    }
+    
+    h1 {
+        font-size: 2rem !important;
+        text-align: center;
+    }
+    
+    .metric-card {
+        padding: 1.25rem !important;
     }
     
     .stMetric > div {
         padding: 1rem !important;
+    }
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+    .block-container {
+        padding: 1rem 1.5rem 3rem !important;
     }
 }
 
@@ -406,7 +522,7 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
 
-# Enhanced Sidebar Configuration
+# Enhanced Sidebar Configuration  
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 1rem 0; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1.5rem;">
@@ -414,6 +530,21 @@ with st.sidebar:
         <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0.5rem 0 0 0;">Configure your trading parameters</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Theme selection moved here properly
+    st.markdown("### 🎨 Appearance")
+    theme_mode = st.selectbox(
+        "Theme Mode", 
+        options=['dark', 'light'], 
+        index=0 if st.session_state.theme_mode == 'dark' else 1,
+        key='theme_main',
+        help="Switch between dark and light themes"
+    )
+    
+    # Update theme if changed
+    if theme_mode != st.session_state.theme_mode:
+        st.session_state.theme_mode = theme_mode
+        st.rerun()
     
     st.markdown("### 💰 Portfolio Settings")
     capital = st.number_input(
@@ -771,10 +902,10 @@ if len(hist_df) > 1:
             title="💰 Estimated Profit Over Time",
             xaxis_title="Time",
             yaxis_title="Profit (KRW)",
-            template="plotly_dark",
+            template=plotly_template,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#f8fafc'),
+            font=dict(color='var(--text-primary)' if is_dark_mode else '#0f172a'),
             height=400,
             hovermode='x unified'
         )
@@ -832,10 +963,10 @@ if len(hist_df) > 1:
         )
         
         fig_premium.update_layout(
-            template="plotly_dark",
+            template=plotly_template,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#f8fafc'),
+            font=dict(color='var(--text-primary)' if is_dark_mode else '#0f172a'),
             height=500,
             hovermode='x unified',
             showlegend=True
@@ -895,10 +1026,10 @@ if len(hist_df) > 1:
         )
         
         fig_multi.update_layout(
-            template="plotly_dark",
+            template=plotly_template,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#f8fafc'),
+            font=dict(color='var(--text-primary)' if is_dark_mode else '#0f172a'),
             height=600,
             showlegend=True
         )
@@ -1122,3 +1253,5 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
+
+
