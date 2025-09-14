@@ -150,7 +150,7 @@ else:
     r2c1.metric("총비용(%)", f"{route_cost:.2f}%")
     r2c2.metric("유효 김프(|김프|-비용)", f"{net_kimp:+.2f}%")
     r2c3.metric("예상 이익(원)", f"{est_profit_krw:,.0f}", delta=f"{net_kimp:+.2f}%")
-else:
+
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Upbit BTC/KRW", f"{krw_btc:,.0f}원")
     col2.metric("Binance BTC/USDT", f"{btcusdt:,.2f} USDT")
@@ -194,3 +194,4 @@ st.markdown(
 with contextlib.suppress(Exception):
     time.sleep(int(refresh_min) * 60)
     st.rerun()
+
