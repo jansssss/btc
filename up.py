@@ -99,11 +99,11 @@ else:
     plotly_template = "plotly_white"
 
 # Professional Design System with Theme Support
-st.markdown(f"""
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-{theme_vars}
+""" + theme_vars + """
 
 /* Global Styles */
 .block-container {
@@ -292,8 +292,8 @@ h2, h3, h4 {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%%, 100%% { opacity: 1; }
+    50%% { opacity: 0.5; }
 }
 
 .animate-in {
@@ -417,8 +417,8 @@ h2, h3, h4 {
 }
 
 @keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0%% { background-position: 200%% 0; }
+    100%% { background-position: -200%% 0; }
 }
 </style>
 """, unsafe_allow_html=True)
