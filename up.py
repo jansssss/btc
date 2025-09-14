@@ -12,7 +12,12 @@ st.set_page_config(
 
 # API Endpoints
 UPBIT_URL = "https://api.upbit.com/v1/ticker"
-BINANCE_URL = "https://api.binance.com/api/v3/ticker/price"
+BINANCE_URLS = [
+    "https://api.binance.com/api/v3/ticker/price",
+    "https://api1.binance.com/api/v3/ticker/price",
+    "https://api2.binance.com/api/v3/ticker/price"
+]
+BYBIT_URL = "https://api.bybit.com/v5/market/tickers"
 BITHUMB_URL = "https://api.bithumb.com/public/ticker/USDT_KRW"
 
 # Clean, professional styling
@@ -72,9 +77,29 @@ def get_upbit_btc():
     return float(r.json()[0]["trade_price"])
 
 @st.cache_data(ttl=10)
-def get_binance_btc():
-    r = requests.get(BINANCE_URL, params={"symbol": "BTCUSDT"})
-    return float(r.json()["price"])
+def get_international_btc():
+    # Try Binance first
+    for url in BINANCE_URLS:
+        try:
+            r = requests.get(url, params={"symbol": "BTCUSDT"}, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            if 'price' in data:
+                return float(data["price"]), "Binance"
+        except:
+            continue
+    
+    # Fallback to Bybit
+    try:
+        r = requests.get(BYBIT_URL, params={"category": "linear", "symbol": "BTCUSDT"}, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if 'result' in data and 'list' in data['result'] and len(data['result']['list']) > 0:
+            return float(data['result']['list'][0]['lastPrice']), "Bybit"
+    except:
+        pass
+    
+    raise Exception("모든 국제 거래소 접속 실패")
 
 @st.cache_data(ttl=15)
 def get_usdt_rate():
@@ -114,7 +139,7 @@ with st.sidebar:
 # Fetch data
 try:
     krw_btc = get_upbit_btc()
-    usdt_btc = get_binance_btc() 
+    usdt_btc, exchange_name = get_international_btc()
     usdt_rate = get_usdt_rate()
     premium = calc_premium(krw_btc, usdt_btc, usdt_rate)
     
@@ -125,7 +150,7 @@ try:
     with col1:
         st.metric("업비트 BTC", f"{krw_btc:,.0f}원")
     with col2:
-        st.metric("바이낸스 BTC", f"{usdt_btc:,.2f} USDT")
+        st.metric(f"{exchange_name} BTC", f"{usdt_btc:,.2f} USDT")
     with col3:
         st.metric("USDT 환율", f"{usdt_rate:,.0f}원")
     
@@ -226,8 +251,15 @@ try:
         - **총 예상 비용: ~0.4%**
         """)
 
+    # Data source info
+    st.caption(f"📡 데이터 소스: 업비트, {exchange_name}, 빗썸")
+
 except Exception as e:
-    st.error(f"데이터 로딩 실패: {e}")
+    st.error(f"❌ 데이터 로딩 실패: {e}")
+    st.info("💡 해결 방법:")
+    st.write("1. 인터넷 연결 확인")
+    st.write("2. VPN 사용 시 한국 서버로 변경")
+    st.write("3. 잠시 후 새로고침 버튼 클릭")
 
 # Auto refresh
 if st.button("새로고침"):
